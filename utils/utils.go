@@ -1,8 +1,8 @@
 package utils
 
-type H struct {
+type H[T any] struct {
 	Err  interface{} `json:"err"` // err must be string or nil
-	Data interface{} `json:"data"`
+	Data T           `json:"data"`
 }
 
 type ServerInfo struct {
