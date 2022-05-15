@@ -44,10 +44,10 @@ int main(){
 func TestCompileSpjRoute(t *testing.T) {
 	router := SetupRouter()
 	w := httptest.NewRecorder()
-	reqBody, _ := json.Marshal(map[string]interface{}{
+	reqBody, _ := json.Marshal(map[string]any{
 		"src":         cSpjSrc,
 		"spj_version": "2",
-		"spj_compile_config": map[string]interface{}{
+		"spj_compile_config": map[string]any{
 			"src_name":        "spj-{spj_version}.c",
 			"exe_name":        "spj-{spj_version}",
 			"max_cpu_time":    3000,

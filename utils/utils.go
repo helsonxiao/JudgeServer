@@ -1,8 +1,8 @@
 package utils
 
 type H[T any] struct {
-	Err  interface{} `json:"err"` // err must be string or nil
-	Data T           `json:"data"`
+	Err  any `json:"err"` // err should be string or nil
+	Data T   `json:"data"`
 }
 
 type SpjCompileJson struct {
