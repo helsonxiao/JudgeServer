@@ -1,17 +1,8 @@
 package utils
 
-import "github.com/gin-gonic/gin"
-
-type ResBody struct {
-	Err  string
-	Data interface{}
-}
-
-func Res(body ResBody) interface{} {
-	if body.Err == "" {
-		return gin.H{"err": nil, "data": body.Data}
-	}
-	return gin.H{"err": body.Err, "data": body.Data}
+type H struct {
+	Err  interface{} `json:"err"` // err must be string or nil
+	Data interface{} `json:"data"`
 }
 
 type ServerInfo struct {

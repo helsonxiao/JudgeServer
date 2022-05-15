@@ -14,21 +14,24 @@ func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
 	r.POST("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, utils.Res(utils.ResBody{
+		c.JSON(http.StatusOK, utils.H{
+			Err:  nil,
 			Data: utils.GetServerInfo(),
-		}))
+		})
 	})
 
 	r.POST("/judge", func(c *gin.Context) {
-		c.JSON(http.StatusOK, utils.Res(utils.ResBody{
+		c.JSON(http.StatusOK, utils.H{
+			Err:  nil,
 			Data: "pong",
-		}))
+		})
 	})
 
 	r.POST("/compile_spj", func(c *gin.Context) {
-		c.JSON(http.StatusOK, utils.Res(utils.ResBody{
+		c.JSON(http.StatusOK, utils.H{
+			Err:  nil,
 			Data: "pong",
-		}))
+		})
 	})
 
 	return r
