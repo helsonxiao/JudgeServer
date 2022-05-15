@@ -26,6 +26,7 @@ func TestPingRoute(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
+	assert.Nil(t, body.Err)
 	assert.Equal(t, reflect.String, reflect.TypeOf(body.Data.Hostname).Kind())
 	assert.Equal(t, reflect.Float32, reflect.TypeOf(body.Data.Cpu).Kind())
 	assert.Equal(t, reflect.Float32, reflect.TypeOf(body.Data.CpuCore).Kind())
@@ -67,5 +68,27 @@ func TestCompileSpjRoute(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
+	assert.Nil(t, resBody.Err)
 	assert.Equal(t, "success", resBody.Data)
+}
+
+func TestCompileSpjErrRoute(t *testing.T) {
+	router := SetupRouter()
+	w := httptest.NewRecorder()
+	reqBody, _ := json.Marshal(map[string]any{
+		"src": cSpjSrc,
+	})
+	req, _ := http.NewRequest("POST", "/compile_spj", strings.NewReader(string(reqBody)))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, 200, w.Code)
+
+	var resBody utils.H[any]
+	err := json.Unmarshal(w.Body.Bytes(), &resBody)
+	if err != nil {
+		fmt.Println(err)
+	}
+	assert.NotNil(t, resBody.Err)
+	assert.Nil(t, resBody.Data)
 }
