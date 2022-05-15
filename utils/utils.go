@@ -5,6 +5,21 @@ type H[T any] struct {
 	Data T           `json:"data"`
 }
 
+type SpjCompileJson struct {
+	Src              string           `json:"src" binding:"required"`
+	SpjVersion       string           `json:"spj_version" binding:"required"`
+	SpjCompileConfig SpjCompileConfig `json:"spj_compile_config" binding:"required"`
+}
+
+type SpjCompileConfig struct {
+	SrcName        string `json:"src_name" binding:"required"`
+	ExeName        string `json:"exe_name" binding:"required"`
+	MaxCpuTime     int    `json:"max_cpu_time" binding:"required"`
+	MaxRealTime    int    `json:"max_real_time" binding:"required"`
+	MaxMemory      int    `json:"max_memory" binding:"required"`
+	CompileCommand string `json:"compile_command" binding:"required"`
+}
+
 type ServerInfo struct {
 	Hostname      string  `json:"hostanme"`
 	Cpu           float32 `json:"cpu"`

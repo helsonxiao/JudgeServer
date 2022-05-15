@@ -28,10 +28,19 @@ func SetupRouter() *gin.Engine {
 	})
 
 	r.POST("/compile_spj", func(c *gin.Context) {
-		c.JSON(http.StatusOK, utils.H[string]{
-			Err:  nil,
-			Data: "pong",
-		})
+		var json utils.SpjCompileJson
+		err := c.Bind(&json)
+		if err == nil {
+			c.JSON(http.StatusOK, utils.H[string]{
+				Err:  nil,
+				Data: "success",
+			})
+		} else {
+			c.JSON(http.StatusOK, utils.H[string]{
+				Err:  "",
+				Data: "",
+			})
+		}
 	})
 
 	return r
