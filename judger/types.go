@@ -28,3 +28,8 @@ const (
 	ErrorExecveFailed            = -10
 	ErrorSpjError                = -11
 )
+
+const (
+	IOModeStandard = "Standard IO"
+	IOModeFile     = "File IO"
+)
