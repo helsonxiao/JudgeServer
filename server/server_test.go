@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/helsonxiao/JudgeServer/judger"
 	"github.com/helsonxiao/JudgeServer/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,12 +36,70 @@ func TestPingRoute(t *testing.T) {
 	assert.Equal(t, "pong", body.Data.Action)
 }
 
+var defaultEnv = []string{"LANG=en_US.UTF-8", "LANGUAGE=en_US:en", "LC_ALL=en_US.UTF-8"}
+
+const py3Src = `
+s = input()
+s1 = s.split(" ")
+print(int(s1[0]) + int(s1[1]))
+`
+
 const cSpjSrc = `
 #include <stdio.h>
 int main(){
-		return 1;
+	return 1;
 }
 `
+
+func TestJudgeRoute(t *testing.T) {
+	router := SetupRouter()
+	w := httptest.NewRecorder()
+	reqBody, _ := json.Marshal(map[string]any{
+		"language_config": map[string]any{
+			"compile": map[string]any{
+				"src_name":        "solution.py",
+				"exe_name":        "__pycache__/solution.cpython-36.pyc",
+				"max_cpu_time":    3000,
+				"max_real_time":   5000,
+				"max_memory":      128 * 1024 * 1024,
+				"compile_command": "/usr/bin/python3 -m py_compile {src_path}",
+			},
+			"run": map[string]any{
+				"command":      "/usr/bin/python3 {exe_path}",
+				"seccomp_rule": "general",
+				"env":          append([]string{"PYTHONIOENCODING=UTF-8"}, defaultEnv...),
+			},
+		},
+		"src":          py3Src,
+		"max_cpu_time": 1000,
+		"max_memory":   128 * 1024 * 1024,
+		"test_case_id": "normal",
+		"output":       true,
+	})
+	req, _ := http.NewRequest("POST", "/judge", strings.NewReader(string(reqBody)))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, 200, w.Code)
+
+	var resBody utils.H[JudgeResponse]
+	err := json.Unmarshal(w.Body.Bytes(), &resBody)
+	if err != nil {
+		fmt.Println(err)
+	}
+	assert.Nil(t, resBody.Err)
+	assert.NotEqual(t, 0, len(resBody.Data))
+	assert.Equal(t, reflect.Int, reflect.TypeOf(resBody.Data[0].CpuTime).Kind())
+	assert.Equal(t, reflect.Int, reflect.TypeOf(resBody.Data[0].RealTime).Kind())
+	assert.Equal(t, reflect.Int, reflect.TypeOf(resBody.Data[0].Memory).Kind())
+	assert.Equal(t, 0, resBody.Data[0].Signal)
+	assert.Equal(t, 0, resBody.Data[0].ExitCode)
+	assert.Equal(t, judger.ErrorSuccess, resBody.Data[0].Error)
+	assert.Equal(t, judger.ResultSuccess, resBody.Data[0].Result)
+	assert.Equal(t, reflect.String, reflect.TypeOf(resBody.Data[0].TestCase).Kind())
+	assert.Equal(t, reflect.String, reflect.TypeOf(resBody.Data[0].OutputMd5).Kind())
+	assert.Equal(t, reflect.String, reflect.TypeOf(resBody.Data[0].Output).Kind())
+}
 
 func TestCompileSpjRoute(t *testing.T) {
 	router := SetupRouter()
