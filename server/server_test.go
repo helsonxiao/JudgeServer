@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/helsonxiao/JudgeServer/configs"
 	"github.com/helsonxiao/JudgeServer/judger"
 	"github.com/helsonxiao/JudgeServer/utils"
 	"github.com/stretchr/testify/assert"
@@ -52,6 +53,7 @@ int main(){
 `
 
 func TestJudgeRoute(t *testing.T) {
+	configs.SetupEnv()
 	router := SetupRouter()
 	w := httptest.NewRecorder()
 	reqBody, _ := json.Marshal(map[string]any{
