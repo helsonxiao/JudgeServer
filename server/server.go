@@ -20,11 +20,11 @@ func SetupRouter() *gin.Engine {
 	})
 
 	r.POST("/judge", func(c *gin.Context) {
-		var json JudgeJson
+		var json JudgeDto
 		err := c.ShouldBind(&json)
 		if err == nil {
-			c.JSON(http.StatusOK, utils.H[JudgeResponse]{
-				Data: make(JudgeResponse, 1),
+			c.JSON(http.StatusOK, utils.H[JudgeResponseDto]{
+				Data: make(JudgeResponseDto, 1),
 			})
 		} else {
 			c.JSON(http.StatusOK, utils.H[any]{
@@ -34,7 +34,7 @@ func SetupRouter() *gin.Engine {
 	})
 
 	r.POST("/compile_spj", func(c *gin.Context) {
-		var json SpjCompileJson
+		var json SpjCompileDto
 		err := c.ShouldBind(&json)
 		if err == nil {
 			c.JSON(http.StatusOK, utils.H[string]{

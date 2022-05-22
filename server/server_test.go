@@ -82,7 +82,7 @@ func TestJudgeRoute(t *testing.T) {
 
 	assert.Equal(t, 200, w.Code)
 
-	var resBody utils.H[JudgeResponse]
+	var resBody utils.H[JudgeResponseDto]
 	err := json.Unmarshal(w.Body.Bytes(), &resBody)
 	if err != nil {
 		fmt.Println(err)

@@ -4,7 +4,7 @@ import (
 	"github.com/helsonxiao/JudgeServer/judger"
 )
 
-type SpjCompileJson struct {
+type SpjCompileDto struct {
 	Src              string           `json:"src" binding:"required"`
 	SpjVersion       string           `json:"spj_version" binding:"required"`
 	SpjCompileConfig SpjCompileConfig `json:"spj_compile_config" binding:"required"`
@@ -25,7 +25,7 @@ type SpjConfig struct {
 	SeccompRule string `json:"seccomp_rule"`
 }
 
-type JudgeJson struct {
+type JudgeDto struct {
 	LanguageConfig   LanguageConfig   `json:"language_config" binding:"required"`
 	Src              string           `json:"src" binding:"required"`
 	MaxCpuTime       int              `json:"max_cpu_time" binding:"required"`
@@ -55,7 +55,7 @@ type LanguageConfig struct {
 	} `json:"run" binding:"required"`
 }
 
-type JudgeResponse []struct {
+type JudgeResponseDto []struct {
 	CpuTime   int
 	RealTime  int
 	Memory    int
