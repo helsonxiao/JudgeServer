@@ -23,7 +23,7 @@ func SetupRouter() *gin.Engine {
 		var judgeDto JudgeDto
 		bindErr := c.ShouldBind(&judgeDto)
 		if bindErr == nil {
-			resDto, judgeErr := Judge()
+			resDto, judgeErr := Judge(judgeDto)
 			if judgeErr == nil {
 				c.JSON(http.StatusOK, utils.H[JudgeResponseDto]{
 					Data: resDto,

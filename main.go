@@ -6,6 +6,7 @@ import (
 )
 
 func main() {
+	// TODO: setup logger
 	configs.InitEnv()
 	r := server.SetupRouter()
 	r.Run(":8000")
