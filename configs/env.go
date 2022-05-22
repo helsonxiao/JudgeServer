@@ -5,7 +5,7 @@ import "os"
 var JudgerWorkspace string
 var TestCaseDir string
 
-func InitEnv() {
+func SetupEnv() {
 	JudgerWorkspace = getEnv("JUDGER_WORKSPACE", "/judger/run")
 	TestCaseDir = getEnv("TEST_CASE_DIR", "/test_case")
 }

@@ -7,7 +7,7 @@ import (
 
 func main() {
 	// TODO: setup logger
-	configs.InitEnv()
+	configs.SetupEnv()
 	r := server.SetupRouter()
 	r.Run(":8000")
 }
