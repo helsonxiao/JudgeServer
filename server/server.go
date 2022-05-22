@@ -20,15 +20,22 @@ func SetupRouter() *gin.Engine {
 	})
 
 	r.POST("/judge", func(c *gin.Context) {
-		var json JudgeDto
-		err := c.ShouldBind(&json)
-		if err == nil {
-			c.JSON(http.StatusOK, utils.H[JudgeResponseDto]{
-				Data: make(JudgeResponseDto, 1),
-			})
+		var judgeDto JudgeDto
+		bindErr := c.ShouldBind(&judgeDto)
+		if bindErr == nil {
+			resDto, judgeErr := Judge()
+			if judgeErr == nil {
+				c.JSON(http.StatusOK, utils.H[JudgeResponseDto]{
+					Data: resDto,
+				})
+			} else {
+				c.JSON(http.StatusOK, utils.H[string]{
+					Err: judgeErr.Error(),
+				})
+			}
 		} else {
-			c.JSON(http.StatusOK, utils.H[any]{
-				Err: err.Error(),
+			c.JSON(http.StatusOK, utils.H[string]{
+				Err: bindErr.Error(),
 			})
 		}
 	})
