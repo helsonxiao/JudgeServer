@@ -2,3 +2,5 @@
 tmp/
 
 judger/run/
+judger/spj/
+log/

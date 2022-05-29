@@ -9,5 +9,5 @@ func main() {
 	// TODO: setup logger
 	configs.SetupEnv()
 	r := server.SetupRouter()
-	r.Run(":8000")
+	r.Run(":8080")
 }
