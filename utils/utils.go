@@ -1,5 +1,7 @@
 package utils
 
+import "strings"
+
 type H[T any] struct {
 	Err  any `json:"err"` // err should be string or nil
 	Data T   `json:"data"`
@@ -25,4 +27,12 @@ func GetServerInfo() ServerInfo {
 		Action:        "pong",
 	}
 	return info
+}
+
+func FillWith(template string, params map[string]string) string {
+	var result *string = &template
+	for k, v := range params {
+		*result = strings.Replace(*result, k, v, -1)
+	}
+	return *result
 }
