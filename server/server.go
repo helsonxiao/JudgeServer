@@ -41,15 +41,25 @@ func SetupRouter() *gin.Engine {
 	})
 
 	r.POST("/compile_spj", func(c *gin.Context) {
-		var json SpjCompileDto
-		err := c.ShouldBind(&json)
-		if err == nil {
-			c.JSON(http.StatusOK, utils.H[string]{
-				Data: "success",
-			})
+		var compileDto SpjCompileDto
+		bindErr := c.ShouldBind(&compileDto)
+		if bindErr == nil {
+			success, err := CompileSpj(compileDto)
+			if success {
+				c.JSON(http.StatusOK, utils.H[string]{
+					Err:  nil,
+					Data: "success",
+				})
+			} else {
+				c.JSON(http.StatusOK, utils.H[string]{
+					Err:  err.Name,
+					Data: err.Message,
+				})
+			}
 		} else {
-			c.JSON(http.StatusOK, utils.H[any]{
-				Err: err.Error(),
+			c.JSON(http.StatusOK, utils.H[string]{
+				Err:  "BindError",
+				Data: bindErr.Error(),
 			})
 		}
 	})

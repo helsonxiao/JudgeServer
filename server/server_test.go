@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -14,6 +15,8 @@ import (
 	"github.com/helsonxiao/JudgeServer/utils"
 	"github.com/stretchr/testify/assert"
 )
+
+const API_PREFIX = "http://localhost:12358"
 
 func TestPingRoute(t *testing.T) {
 	router := SetupRouter()
@@ -103,9 +106,8 @@ func TestJudgeRoute(t *testing.T) {
 	assert.Equal(t, reflect.String, reflect.TypeOf(resBody.Data[0].Output).Kind())
 }
 
+// TODO: test cpp spj
 func TestCompileSpjRoute(t *testing.T) {
-	router := SetupRouter()
-	w := httptest.NewRecorder()
 	reqBody, _ := json.Marshal(map[string]any{
 		"src":         cSpjSrc,
 		"spj_version": "2",
@@ -118,38 +120,26 @@ func TestCompileSpjRoute(t *testing.T) {
 			"compile_command": "/usr/bin/gcc -DONLINE_JUDGE -O2 -w -fmax-errors=3 -std=c99 {src_path} -lm -o {exe_path}",
 		},
 	})
-	req, _ := http.NewRequest("POST", "/compile_spj", strings.NewReader(string(reqBody)))
-	req.Header.Set("Content-Type", "application/json")
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, 200, w.Code)
+	res, _ := http.Post(API_PREFIX+"/compile_spj", "application/json", strings.NewReader(string(reqBody)))
+	assert.Equal(t, 200, res.StatusCode)
 
 	var resBody utils.H[string]
-	err := json.Unmarshal(w.Body.Bytes(), &resBody)
-	if err != nil {
-		fmt.Println(err)
-	}
+	resBytes, _ := ioutil.ReadAll(res.Body)
+	json.Unmarshal(resBytes, &resBody)
 	assert.Nil(t, resBody.Err)
 	assert.Equal(t, "success", resBody.Data)
 }
 
 func TestCompileSpjErrRoute(t *testing.T) {
-	router := SetupRouter()
-	w := httptest.NewRecorder()
 	reqBody, _ := json.Marshal(map[string]any{
 		"src": cSpjSrc,
 	})
-	req, _ := http.NewRequest("POST", "/compile_spj", strings.NewReader(string(reqBody)))
-	req.Header.Set("Content-Type", "application/json")
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, 200, w.Code)
+	res, _ := http.Post(API_PREFIX+"/compile_spj", "application/json", strings.NewReader(string(reqBody)))
+	assert.Equal(t, 200, res.StatusCode)
 
 	var resBody utils.H[any]
-	err := json.Unmarshal(w.Body.Bytes(), &resBody)
-	if err != nil {
-		fmt.Println(err)
-	}
-	assert.NotNil(t, resBody.Err)
-	assert.Nil(t, resBody.Data)
+	resBytes, _ := ioutil.ReadAll(res.Body)
+	json.Unmarshal(resBytes, &resBody)
+	assert.Equal(t, resBody.Err, "BindError")
+	assert.NotNil(t, resBody.Data)
 }
