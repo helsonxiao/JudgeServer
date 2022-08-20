@@ -18,6 +18,7 @@ services:
             - $PWD/tests/test_case:/test_case
             - $PWD/log:/log
             - $PWD/judger/run:/judger/run
+            - $PWD/judger/spj:/judger/spj
         environment:
             - BACKEND_URL=http://backend:80/api/judge_server_heartbeat
             - SERVICE_URL=http://judge-server:12358
