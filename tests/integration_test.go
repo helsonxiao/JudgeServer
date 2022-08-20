@@ -2,16 +2,14 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/helsonxiao/JudgeServer/configs"
 	"github.com/helsonxiao/JudgeServer/judger"
+	"github.com/helsonxiao/JudgeServer/server"
 	"github.com/helsonxiao/JudgeServer/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,18 +17,12 @@ import (
 const API_PREFIX = "http://localhost:12358"
 
 func TestPingRoute(t *testing.T) {
-	router := SetupRouter()
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/ping", nil)
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, 200, w.Code)
+	res, _ := http.Post(API_PREFIX+"/ping", "application/json", nil)
+	assert.Equal(t, 200, res.StatusCode)
 
 	var body utils.H[utils.ServerInfo]
-	err := json.Unmarshal(w.Body.Bytes(), &body)
-	if err != nil {
-		fmt.Println(err)
-	}
+	resBytes, _ := ioutil.ReadAll(res.Body)
+	json.Unmarshal(resBytes, &body)
 	assert.Nil(t, body.Err)
 	assert.Equal(t, reflect.String, reflect.TypeOf(body.Data.Hostname).Kind())
 	assert.Equal(t, reflect.Float32, reflect.TypeOf(body.Data.Cpu).Kind())
@@ -56,9 +48,6 @@ int main(){
 `
 
 func TestJudgeRoute(t *testing.T) {
-	configs.SetupEnv()
-	router := SetupRouter()
-	w := httptest.NewRecorder()
 	reqBody, _ := json.Marshal(map[string]any{
 		"language_config": map[string]any{
 			"compile": map[string]any{
@@ -81,17 +70,12 @@ func TestJudgeRoute(t *testing.T) {
 		"test_case_id": "normal",
 		"output":       true,
 	})
-	req, _ := http.NewRequest("POST", "/judge", strings.NewReader(string(reqBody)))
-	req.Header.Set("Content-Type", "application/json")
-	router.ServeHTTP(w, req)
+	res, _ := http.Post(API_PREFIX+"/judge", "application/json", strings.NewReader(string(reqBody)))
+	assert.Equal(t, 200, res.StatusCode)
 
-	assert.Equal(t, 200, w.Code)
-
-	var resBody utils.H[JudgeResponseDto]
-	err := json.Unmarshal(w.Body.Bytes(), &resBody)
-	if err != nil {
-		fmt.Println(err)
-	}
+	var resBody utils.H[server.JudgeResponseDto]
+	resBytes, _ := ioutil.ReadAll(res.Body)
+	json.Unmarshal(resBytes, &resBody)
 	assert.Nil(t, resBody.Err)
 	assert.NotEqual(t, 0, len(resBody.Data))
 	assert.Equal(t, reflect.Int, reflect.TypeOf(resBody.Data[0].CpuTime).Kind())
