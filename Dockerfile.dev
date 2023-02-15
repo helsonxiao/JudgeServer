@@ -27,10 +27,7 @@ RUN apt-get update && apt-get install -y $RUNTIME_BUILD_DEPS && \
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* && apt-get purge -y --auto-remove $RUNTIME_BUILD_DEPS
 # COPY build/java_policy /etc
 
-ADD go.mod /code
-ADD go.sum /code
 RUN go install github.com/cosmtrek/air@latest
-
 WORKDIR /code
 ADD . /code
 RUN go get .

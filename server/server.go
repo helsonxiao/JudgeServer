@@ -26,16 +26,19 @@ func SetupRouter() *gin.Engine {
 			resDto, judgeErr := Judge(judgeDto)
 			if judgeErr == nil {
 				c.JSON(http.StatusOK, utils.H[JudgeResponseDto]{
+					Err:  nil,
 					Data: resDto,
 				})
 			} else {
 				c.JSON(http.StatusOK, utils.H[string]{
-					Err: judgeErr.Error(),
+					Err:  judgeErr.Name,
+					Data: judgeErr.Message,
 				})
 			}
 		} else {
 			c.JSON(http.StatusOK, utils.H[string]{
-				Err: bindErr.Error(),
+				Err:  "BindError",
+				Data: bindErr.Error(),
 			})
 		}
 	})

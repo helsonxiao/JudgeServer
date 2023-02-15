@@ -2,57 +2,160 @@ package judger
 
 import (
 	"encoding/json"
-	"os/exec"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
 	"strconv"
+	"strings"
+	"sync"
 
 	"github.com/helsonxiao/JudgeServer/configs"
+	"github.com/helsonxiao/JudgeServer/utils"
 )
 
-// Judger version 2.1.1
-// https://github.com/QingdaoU/Judger/blob/016653cedb0765d96ba999d86e14a033cb2fa875/src/main.c#L13
-func Run(config Config) (*Result, error) {
-	args := []string{}
+const DEFAULT_MAX_OUTPUT_SIZE = 16 * 1024 * 1024
 
-	// parsing int args
-	args = append(args, "--max_cpu_time="+strconv.Itoa(config.MaxCpuTime))
-	args = append(args, "--max_real_time="+strconv.Itoa(config.MaxRealTime))
-	args = append(args, "--max_memory="+strconv.Itoa(config.MaxMemory))
-	args = append(args, "--max_stack="+strconv.Itoa(config.MaxStack))
-	args = append(args, "--max_process_number="+strconv.Itoa(config.MaxProcessNumber))
-	args = append(args, "--max_output_size="+strconv.Itoa(config.MaxOutPutSize))
-	args = append(args, "--memory_limit_check_only="+strconv.Itoa(config.MemoryLimitCheckOnly))
-	args = append(args, "--uid="+strconv.Itoa(config.Uid))
-	args = append(args, "--gid="+strconv.Itoa(config.Gid))
+func Judge(params JudgeParams) ([]JudgeResult, *utils.ServerError) {
+	testCaseDir := path.Join(configs.TestCaseDir, params.TestCaseId)
+	testCaseInfoPath := path.Join(testCaseDir, "info")
+	infoBytes, infoErr := ioutil.ReadFile(testCaseInfoPath)
+	if infoErr != nil {
+		return nil, &utils.ServerError{Name: "JudgeClientError", Message: infoErr.Error()}
+	}
+	var testCaseInfo TestCaseInfo
+	if err := json.Unmarshal(infoBytes, &testCaseInfo); err != nil {
+		return nil, &utils.ServerError{Name: "JudgeClientError", Message: err.Error()}
+	}
+	// fmt.Println(testCaseInfo.TestCases)
 
-	// parsing string args
-	args = append(args, "--exe_path="+config.ExePath)
-	args = append(args, "--input_path="+config.InputPath)
-	args = append(args, "--output_path="+config.OutputPath)
-	args = append(args, "--error_path="+config.ErrorPath)
-	args = append(args, "--log_path="+config.LogPath)
-	if config.SecCompRuleName != nil {
-		args = append(args, "--seccomp_rule_name="+*config.SecCompRuleName)
+	command := utils.FillWith(params.RunConfig.Command, map[string]string{
+		"{exe_path}":   params.ExePath,
+		"{exe_dir}":    params.SubmissionDir,
+		"{max_memory}": strconv.Itoa(params.MaxMemory / 1024),
+	})
+
+	// 由于部分语言的编译产物无法直接运行，RunConfig.Command 指令模板会确保第一个 cut 可执行，其余 cut 作为参数传递
+	commandCuts := strings.Split(command, " ")
+	exePath := commandCuts[0]
+	args := commandCuts[1:]
+
+	env := []string{}
+	env = append(env, params.RunConfig.Env...)
+	env = append(env, "PATH="+os.Getenv("PATH"))
+
+	// 收集并发评测的结果
+	var results []JudgeResult
+	var resultsWg sync.WaitGroup
+	resultChan := make(chan JudgeResult, len(testCaseInfo.TestCases))
+	resultsWg.Add(1)
+	go func() {
+		defer resultsWg.Done()
+		for r := range resultChan {
+			results = append(results, r)
+		}
+	}()
+
+	// 并发评测
+	var judgeWg sync.WaitGroup
+	for testCaseName, testCaseDetail := range testCaseInfo.TestCases {
+		// fmt.Println(testCaseDetail)
+		judgeWg.Add(1)
+		go judgeOne(&judgeWg, resultChan, JudgeOneParams{
+			Args:           args,
+			Env:            env,
+			ExePath:        exePath,
+			MaxCpuTime:     params.MaxCpuTime,
+			MaxMemory:      params.MaxMemory,
+			SeccompRule:    params.RunConfig.SeccompRule,
+			SubmissionDir:  params.SubmissionDir,
+			TestCaseDir:    testCaseDir,
+			TestCaseName:   testCaseName,
+			TestCaseDetail: testCaseDetail,
+		})
+	}
+	judgeWg.Wait()
+	close(resultChan)
+	resultsWg.Wait()
+	return results, nil
+}
+
+func judgeOne(wg *sync.WaitGroup, resultChan chan JudgeResult, params JudgeOneParams) {
+	defer wg.Done()
+	// fmt.Println("judgeOne", params.TestCaseName)
+	inputPath := path.Join(params.TestCaseDir, params.TestCaseName+".in")
+	// fmt.Println("inputPath", inputPath)
+
+	// TODO: support file io
+
+	userOutputPath := path.Join(params.SubmissionDir, params.TestCaseName+".out")
+	// fmt.Println("userOutputPath", userOutputPath)
+
+	maxOutputSize := DEFAULT_MAX_OUTPUT_SIZE
+	if params.TestCaseDetail.OutputSize != nil {
+		maxOutputSize = Max(maxOutputSize, *params.TestCaseDetail.OutputSize*2)
 	}
 
-	// parsing list args
-	for _, arg := range config.Args {
-		args = append(args, "--args="+arg)
-	}
-	for _, env := range config.Env {
-		args = append(args, "--env="+env)
+	runResult, runErr := Run(RunConfig{
+		MaxCpuTime:           params.MaxCpuTime,
+		MaxRealTime:          params.MaxCpuTime * 3,
+		MaxMemory:            params.MaxMemory,
+		MaxStack:             128 * 1024 * 1024,
+		MaxOutputSize:        maxOutputSize,
+		MaxProcessNumber:     -1, // unlimited
+		MemoryLimitCheckOnly: 0,  // strict mode
+		Env:                  params.Env,
+		ExePath:              params.ExePath,
+		Args:                 params.Args,
+		InputPath:            inputPath,
+		OutputPath:           userOutputPath,
+		ErrorPath:            userOutputPath,
+		LogPath:              configs.JudgerLogPath,
+		SecCompRuleName:      &params.SeccompRule,
+		Uid:                  configs.RunUserUid,
+		Gid:                  configs.RunGroupGid,
+	})
+	if runErr != nil {
+		// TODO: log runErr.Error()
+		resultChan <- JudgeResult{
+			CpuTime:   -1,
+			Error:     -1,
+			ExitCode:  -1,
+			OutputMd5: "",
+			Output:    "",
+			Memory:    -1,
+			RealTime:  -1,
+			Result:    ResultSystemError,
+			Signal:    -1,
+			TestCase:  params.TestCaseName,
+		}
+		return
 	}
 
-	// fmt.Println(args)
-	cmd := exec.Command(configs.JudgerPath, args...)
-	output, err := cmd.Output()
-	if err != nil {
-		return nil, err
+	result := JudgeResult{
+		CpuTime:   runResult.CpuTime,
+		Error:     runResult.Error,
+		ExitCode:  runResult.ExitCode,
+		OutputMd5: "", // TODO
+		Output:    "", // TODO
+		Memory:    runResult.Memory,
+		RealTime:  runResult.RealTime,
+		Result:    runResult.Result,
+		Signal:    runResult.Signal,
+		TestCase:  params.TestCaseName,
 	}
+	fmt.Println(result.TestCase)
+	// TODO: check and update result
+	resultChan <- result
+}
 
-	var result Result
-	err = json.Unmarshal(output, &result)
-	if err != nil {
-		return nil, err
+func spj() {}
+
+func compareOutput() {}
+
+func Max(x, y int) int {
+	if x > y {
+		return x
 	}
-	return &result, err
+	return y
 }
