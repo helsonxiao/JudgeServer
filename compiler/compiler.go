@@ -43,14 +43,14 @@ func Compile(config CompileConfig, srcPath string, outputDir string) (string, *u
 	}
 	env = append(env, "PATH="+os.Getenv("PATH"))
 
-	result, runErr := judger.Run(judger.Config{
+	result, runErr := judger.Run(judger.RunConfig{
 		MaxCpuTime:           config.MaxCpuTime,
 		MaxRealTime:          config.MaxRealTime,
 		MaxMemory:            config.MaxMemory,
 		MaxStack:             128 * 1024 * 1024,
-		MaxOutPutSize:        20 * 1024 * 1024,
-		MaxProcessNumber:     -1,
-		MemoryLimitCheckOnly: 0,
+		MaxOutputSize:        20 * 1024 * 1024,
+		MaxProcessNumber:     -1, // unlimited
+		MemoryLimitCheckOnly: 0,  // strict mode
 		ExePath:              args[0],
 		Args:                 args[1:],
 		InputPath:            srcPath,

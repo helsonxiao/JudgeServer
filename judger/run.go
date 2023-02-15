@@ -10,7 +10,7 @@ import (
 
 // Judger version 2.1.1
 // https://github.com/QingdaoU/Judger/blob/016653cedb0765d96ba999d86e14a033cb2fa875/src/main.c#L13
-func Run(config Config) (*Result, error) {
+func Run(config RunConfig) (*RunResult, error) {
 	args := []string{}
 
 	// parsing int args
@@ -19,7 +19,7 @@ func Run(config Config) (*Result, error) {
 	args = append(args, "--max_memory="+strconv.Itoa(config.MaxMemory))
 	args = append(args, "--max_stack="+strconv.Itoa(config.MaxStack))
 	args = append(args, "--max_process_number="+strconv.Itoa(config.MaxProcessNumber))
-	args = append(args, "--max_output_size="+strconv.Itoa(config.MaxOutPutSize))
+	args = append(args, "--max_output_size="+strconv.Itoa(config.MaxOutputSize))
 	args = append(args, "--memory_limit_check_only="+strconv.Itoa(config.MemoryLimitCheckOnly))
 	args = append(args, "--uid="+strconv.Itoa(config.Uid))
 	args = append(args, "--gid="+strconv.Itoa(config.Gid))
@@ -49,7 +49,7 @@ func Run(config Config) (*Result, error) {
 		return nil, err
 	}
 
-	var result Result
+	var result RunResult
 	err = json.Unmarshal(output, &result)
 	if err != nil {
 		return nil, err
